@@ -121,7 +121,10 @@ public class RobotContainer {
       intakeSubsystem.toggleExtension(), intakeSubsystem));
     
     colorWheelBtn.whenPressed(new InstantCommand(() ->
-      colorWheelSubsystem.flip(), colorWheelSubsystem));
+      colorWheelSubsystem.setFlipped(true), colorWheelSubsystem));
+    
+    colorWheelBtn.whenReleased(new InstantCommand(() ->
+      colorWheelSubsystem.setFlipped(false), colorWheelSubsystem));
     
     
     // Driver buttons

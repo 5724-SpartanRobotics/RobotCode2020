@@ -19,7 +19,6 @@ public class ColorWheelSubsystem extends SubsystemBase {
   
   private VictorSPX colorWheelMotor = new VictorSPX(ColorWheelConstants.kMotorID);
   private Solenoid toggleSolenoid = new Solenoid(ColorWheelConstants.kSolenoidID);
-  private boolean isUp = false;
 
   /**
    * Creates a new ExampleSubsystem.
@@ -32,14 +31,12 @@ public class ColorWheelSubsystem extends SubsystemBase {
     colorWheelMotor.set(ControlMode.PercentOutput, velocity);
   }
 
-  public void flip() {
-    isUp = !isUp;
+  public void setFlipped(boolean isUp) {
     toggleSolenoid.set(isUp);
   }
 
   public void reset() {
-    isUp = false;
-    toggleSolenoid.set(isUp);
+    setFlipped(false);
   }
 
   @Override
