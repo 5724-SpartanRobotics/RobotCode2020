@@ -7,31 +7,27 @@
 
 package frc.robot.subsystems;
 
-import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkMaxLowLevel.MotorType;
-
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.Constants.MagazineConstants;
+import io.github.pseudoresonance.pixy2api.Pixy2;
+import io.github.pseudoresonance.pixy2api.Pixy2.LinkType;
 
-public class MagazineSubsystem extends SubsystemBase {
+public class PixySubsystem extends SubsystemBase {
+  
+  private final Pixy2 pixy;
 
-  private CANSparkMax motorBottom = new CANSparkMax(MagazineConstants.kMotorBottomID, MotorType.kBrushless);
-  private CANSparkMax motorTop = new CANSparkMax(MagazineConstants.kMotorTopID, MotorType.kBrushless);
   /**
    * Creates a new ExampleSubsystem.
    */
-  public MagazineSubsystem() {
-    motorBottom.follow(motorTop);
+  public PixySubsystem() {
+    // Set up the pixy
+    pixy = Pixy2.createInstance(LinkType.SPI);
+    pixy.init();
+    pixy.setLamp((byte)1, (byte)1);
+    pixy.setLED(255, 255, 255);
   }
 
-  public void run(double power) {
-    // Deadband at plus or minus 5% (because otherwise the magazine drifts)
-    if (Math.abs(power) < 0.05)
-    {
-      power = 0;
-    }
-
-    motorTop.set(power);
+  public Pixy2 getPixy() {
+      return pixy;
   }
 
   @Override

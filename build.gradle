@@ -37,6 +37,10 @@ deploy {
     }
 }
 
+repositories {
+    maven { url 'https://nexus.otake.pw/repository/maven-public/' }
+}
+
 // Set this to true to enable desktop support.
 def includeDesktopSupport = false
 
@@ -57,6 +61,9 @@ dependencies {
     // Enable simulation gui support. Must check the box in vscode to enable support
     // upon debugging
     simulation wpi.deps.sim.gui(wpi.platforms.desktop, false)
+
+    // Pixy2 java library (https://github.com/PseudoResonance/Pixy2JavaAPI/)
+    implementation 'pw.otake.pseudoresonance:pixy2-java-api:1.3.5'
 }
 
 // Setting up my Jar File. In this case, adding all libraries into the main jar ('fat jar')

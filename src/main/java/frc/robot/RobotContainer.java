@@ -7,22 +7,27 @@
 
 package frc.robot;
 
+import edu.wpi.cscore.UsbCamera;
+import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.GenericHID;
+import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.RunCommand;
+import edu.wpi.first.wpilibj2.command.button.JoystickButton;
+import frc.robot.Constants.ClimbConstants;
 import frc.robot.Constants.ColorWheelConstants;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.IntakeConstants;
 import frc.robot.Constants.MagazineConstants;
+import frc.robot.commands.AutoCommand;
 import frc.robot.subsystems.ClimberSubsystem;
 import frc.robot.subsystems.ColorWheelSubsystem;
 import frc.robot.subsystems.DrivetrainSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.MagazineSubsystem;
-import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
-import edu.wpi.first.wpilibj2.command.RunCommand;
-import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 
 /**
  * This class is where the bulk of the robot should be declared.  Since Command-based is a
@@ -37,24 +42,56 @@ public class RobotContainer {
   private final ClimberSubsystem climberSubsystem = new ClimberSubsystem();
   private final ColorWheelSubsystem colorWheelSubsystem = new ColorWheelSubsystem();
   private final DrivetrainSubsystem drivetrainSubsystem = new DrivetrainSubsystem();
+  //private final PixySubsystem pixySubsystem = new PixySubsystem();
 
-  private Compressor Comp = new Compressor();
+  private final Compressor Comp = new Compressor();
 
   private final XboxController xboxDriver = new XboxController(0);
   private final XboxController xboxOperator = new XboxController(1);
+
+  // The autonomous command
+  private final Command autoCommand = new AutoCommand(drivetrainSubsystem, intakeSubsystem, magazineSubsystem);
 
 
   /**
    * The container for the robot.  Contains subsystems, OI devices, and commands.
    */
   public RobotContainer() {
+    //new TargetPowerCell(drivetrainSubsystem, pixySubsystem).schedule();
+
+    // Start the cameras
+    UsbCamera cam1 = CameraServer.getInstance().startAutomaticCapture();
+    UsbCamera cam2 = CameraServer.getInstance().startAutomaticCapture();
+    cam1.setResolution(160, 120);
+    cam2.setResolution(320, 240);
+
     // Configure the button bindings
     configureButtonBindings();
 
     drivetrainSubsystem.setDefaultCommand(new RunCommand(() -> {
       double speed = xboxDriver.getRawAxis(DriveConstants.kJoystickFwd) - xboxDriver.getRawAxis(DriveConstants.kJoystickRev);
-      double rot = -xboxDriver.getRawAxis(DriveConstants.kJoystickRotate);
+      double rot = xboxDriver.getRawAxis(DriveConstants.kJoystickRotate);
+
+      if (xboxDriver.getRawButton(DriveConstants.kSuperSlowBtn))
+      {
+        speed *= 0.7;
+        rot *= 0.6;
+      }
+
       drivetrainSubsystem.arcadeDrive(speed, rot);
+
+      // Overheat protection
+      if (drivetrainSubsystem.driveLeftIsHot()) {
+        xboxDriver.setRumble(RumbleType.kLeftRumble, 0.5);
+      } else {
+        xboxDriver.setRumble(RumbleType.kLeftRumble, 0);
+      }
+
+      if (drivetrainSubsystem.driveRightIsHot()) {
+        xboxDriver.setRumble(RumbleType.kRightRumble, 0.5);
+      } else {
+        xboxDriver.setRumble(RumbleType.kRightRumble, 0);
+      }
     }, drivetrainSubsystem));
     
     // By default (so basically, not in autonomous), run a command that runs the magazine at
@@ -70,10 +107,13 @@ public class RobotContainer {
 
     colorWheelSubsystem.setDefaultCommand(new RunCommand(() -> {
       double colorWheelSpeed = 0;
-      // TODO check if this is actually left and right
-      if (xboxOperator.getPOV() == ColorWheelConstants.kColorWheelLeftPOV) {
+      
+      if (xboxOperator.getPOV() == ColorWheelConstants.kColorWheelLeftPOV)
+      {
         colorWheelSpeed = -0.25;
-      } else if (xboxOperator.getPOV() == ColorWheelConstants.kColorWheelRightPOV) {
+      }
+      else if (xboxOperator.getPOV() == ColorWheelConstants.kColorWheelRightPOV)
+      {
         colorWheelSpeed = 0.25;
       }
 
@@ -82,11 +122,20 @@ public class RobotContainer {
 
     climberSubsystem.setDefaultCommand(new RunCommand(() -> {
       double hookSpeed = 0;
+      final double HOOK_SPEED_MAX = 0.27;
 
-      if (xboxOperator.getPOV() == 0) {
-        hookSpeed = 0.25;
-      } else if (xboxOperator.getPOV() == 180) {
-        hookSpeed = -0.25;
+      if (xboxOperator.getPOV() == 0)
+      {
+        hookSpeed = HOOK_SPEED_MAX;
+      }
+      else if (xboxOperator.getPOV() == 180)
+      {
+        hookSpeed = -HOOK_SPEED_MAX;
+      }
+
+      if (xboxOperator.getRawButton(ClimbConstants.kHookMorePower))
+      {
+        hookSpeed *= 2.4;
       }
 
       climberSubsystem.runHook(hookSpeed);
@@ -129,13 +178,40 @@ public class RobotContainer {
     
     // Driver buttons
     JoystickButton shifterBtn = new JoystickButton(xboxDriver, DriveConstants.kShiftBtn);
-    JoystickButton climbBtn = new JoystickButton(xboxDriver, DriveConstants.kClimbBtn);
+    JoystickButton slowBackBtn = new JoystickButton(xboxDriver, DriveConstants.kSlowBackBtn);
+    JoystickButton slowFwdBtn = new JoystickButton(xboxDriver, DriveConstants.kTargetFwdBtn);
+    JoystickButton superSlowBtn = new JoystickButton(xboxDriver, DriveConstants.kSuperSlowBtn);
+    JoystickButton climbBtn = new JoystickButton(xboxDriver, ClimbConstants.kClimbBtn);
+    JoystickButton climbReverseBtn = new JoystickButton(xboxDriver, ClimbConstants.kClimbReverseBtn);
 
     shifterBtn.whenPressed(new InstantCommand(() ->
-      drivetrainSubsystem.shift(), drivetrainSubsystem));
+      drivetrainSubsystem.shiftDown(), drivetrainSubsystem));
+    
+    shifterBtn.whenReleased(new InstantCommand(() ->
+      drivetrainSubsystem.shiftUp(), drivetrainSubsystem));
+
+    
+    slowBackBtn.whileHeld(new InstantCommand(() ->
+      drivetrainSubsystem.arcadeDrive(superSlowBtn.get() ? -0.2: -0.4, xboxDriver.getRawAxis(DriveConstants.kJoystickRotate) * 0.8),
+      drivetrainSubsystem));
+
+    slowFwdBtn.whileHeld(new InstantCommand(() ->
+      drivetrainSubsystem.arcadeDrive(superSlowBtn.get() ? 0.2 : 0.4, xboxDriver.getRawAxis(DriveConstants.kJoystickRotate) * 0.8),
+      drivetrainSubsystem));
+    
 
     climbBtn.whenPressed(new InstantCommand(() -> 
       climberSubsystem.runWench(), climberSubsystem));
+    
+    climbBtn.whenReleased(new InstantCommand(() -> 
+      climberSubsystem.stopWench(), climberSubsystem));
+
+    
+    climbReverseBtn.whenPressed(new InstantCommand(() ->
+      climberSubsystem.reverseWench(), climberSubsystem));
+    
+    climbReverseBtn.whenReleased(new InstantCommand(() -> 
+      climberSubsystem.stopWench(), climberSubsystem));
   }
 
   /**
@@ -144,8 +220,6 @@ public class RobotContainer {
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
-    // An ExampleCommand will run in autonomous
-    //return m_autoCommand;
-    return null;
+    return autoCommand;
   }
 }

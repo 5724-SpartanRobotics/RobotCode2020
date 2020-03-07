@@ -11,7 +11,9 @@ import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.can.VictorSPX;
 
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Solenoid;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.ColorWheelConstants;
 
@@ -40,7 +42,38 @@ public class ColorWheelSubsystem extends SubsystemBase {
   }
 
   @Override
+  // This method will be called once per scheduler run
   public void periodic() {
-    // This method will be called once per scheduler run
+    // Check for the color wheel color
+    String gameData = DriverStation.getInstance().getGameSpecificMessage();
+
+    if (gameData.length() > 0)
+    {
+      char c = gameData.charAt(0);
+      String color = "None";
+
+      if (c == 'B')
+      {
+        color = "Blue";
+      }
+      else if (c == 'G') 
+      {
+        color = "Green";
+      }
+      else if (c == 'R')
+      {
+        color = "Red";
+      }
+      else if (c == 'Y')
+      {
+        color = "Yellow";
+      }
+
+      SmartDashboard.putString("Color", color);
+    }
+    else
+    {
+      SmartDashboard.putString("Color", "None");
+    }
   }
 }

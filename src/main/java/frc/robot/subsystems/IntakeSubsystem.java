@@ -32,6 +32,11 @@ public class IntakeSubsystem extends SubsystemBase {
     armSolenoid.set(intakeExtended);
   }
 
+  public void setExtended(boolean extended) {
+    intakeExtended = extended;
+    armSolenoid.set(intakeExtended);
+  }
+
   public void reset() {
     intakeExtended = false;
     armSolenoid.set(intakeExtended);
